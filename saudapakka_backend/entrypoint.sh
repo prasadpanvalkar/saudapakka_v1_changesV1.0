@@ -1,32 +1,36 @@
 #!/bin/bash
 set -e
 
-echo "🚀 Starting SaudaPakka Backend..."
+# Pre-create logs dir
+mkdir -p /logs
 
-# Wait for database to be ready
-echo "⏳ Waiting for database..."
-while ! nc -z $POSTGRES_HOST $POSTGRES_PORT; do
-  sleep 1
+# Wait for Postgres
+# Note: Host 'postgres' must match the service name in docker-compose
+while ! nc -z postgres 5432; do
+  echo "Waiting for Postgres..."
+  sleep 2
 done
-echo "✅ Database is ready!"
 
-# Run migrations
-echo "📦 Running migrations..."
+# Django migrations (slowest step)
+echo "Running migrations..."
 python manage.py migrate --noinput
 
-# Collect static files
-echo "📁 Collecting static files..."
+# Collect static
 python manage.py collectstatic --noinput
 
-# Start Gunicorn with production settings
-echo "🌐 Starting Gunicorn server..."
-exec gunicorn saudapakka.wsgi:application \
-    --bind 0.0.0.0:8000 \
-    --workers 3 \
-    --threads 2 \
-    --worker-class gthread \
-    --worker-tmp-dir /dev/shm \
-    --access-logfile - \
-    --error-logfile - \
-    --capture-output \
-    --log-level info
+# Create superuser if missing
+# Uses a shell snippet to check existence first to comply with idempotency
+python manage.py shell -c "
+from django.contrib.auth import get_user_model
+User = get_user_model()
+if not User.objects.filter(is_superuser=True).exists():
+    print('Creating superuser...')
+    User.objects.create_superuser('admin', 'admin@example.com', 'password')
+else:
+    print('Superuser already exists.')
+"
+
+# Start Gunicorn
+echo "Starting Gunicorn..."
+# 120s timeout to handle slow initial requests/migrations if they overlap
+exec gunicorn saudapakka.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120
