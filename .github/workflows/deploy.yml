@@ -87,27 +87,38 @@ jobs:
           ssh-keyscan -H ${{ env.VPS_HOST }} >> ~/.ssh/known_hosts
 
       - name: Deploy to VPS
-        run: |
-          ssh ${{ env.VPS_USER }}@${{ env.VPS_HOST }} << 'ENDSSH'
-            set -e
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: 22
+          script: |
+            # Navigate to project directory (create if missing)
+            mkdir -p /var/www/saudapakka
+            cd /var/www/saudapakka
             
-            echo "📦 Navigating to deployment directory..."
-            cd ${{ env.DEPLOY_PATH }}
+            # Allow git commands (safe directory)
+            git config --global --add safe.directory /var/www/saudapakka
             
-            echo "🔄 Pulling latest code..."
+            # Initialize or pull repo
+            if [ ! -d ".git" ]; then
+              git init
+              git remote add origin https://github.com/Aladin-0/SPakka-production.git
+            fi
+            
+            # Pull latest changes
             git fetch origin main
             git reset --hard origin/main
             
-            echo "🏗️ Building and starting containers..."
+            # Deployment
+            docker compose -f docker-compose.prod.yml down -v || true
             docker compose -f docker-compose.prod.yml build --no-cache
             docker compose -f docker-compose.prod.yml up -d
             
-            echo "🧹 Cleaning up old images..."
-            docker image prune -f
-            
-            echo "✅ Deployment complete!"
+            # Verification
             docker compose -f docker-compose.prod.yml ps
-          ENDSSH
+            docker compose -f docker-compose.prod.yml logs backend --tail=10
 
       - name: Verify Deployment
         run: |
