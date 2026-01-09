@@ -43,7 +43,7 @@ export default function LocationPicker({ onLocationSelect, initialLat, initialLn
   const initialPos = (initialLat && initialLng) ? new L.LatLng(initialLat, initialLng) : null;
 
   return (
-    <div className="h-[300px] w-full rounded-md overflow-hidden border z-0">
+    <div className="h-[300px] w-full rounded-md overflow-hidden border" style={{ isolation: 'isolate', position: 'relative', zIndex: 0 }}>
       <MapContainer
         center={center}
         zoom={13}

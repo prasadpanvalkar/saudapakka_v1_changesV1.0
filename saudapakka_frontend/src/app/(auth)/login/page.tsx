@@ -100,7 +100,7 @@ export default function LoginPage() {
           {/* Header */}
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-dark-green mb-2 tracking-tight">
-              sauda<span className="text-accent-green">pakka</span>
+              Sauda<span className="text-accent-green">pakka</span>
             </h1>
             <p className="text-gray-500 text-sm">
               {step === "EMAIL" ? "Sign in to manage your property portfolio" : `Enter the 6-digit code sent to ${email}`}

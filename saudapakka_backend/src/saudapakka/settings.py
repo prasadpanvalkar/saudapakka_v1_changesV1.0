@@ -170,15 +170,15 @@ REST_FRAMEWORK = {
         'rest_framework.throttling.UserRateThrottle'
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'anon': '100/hour',
-        'user': '1000/hour'
+        'anon': '1000/hour',
+        'user': '5000/hour'
     }
 }
 
 from datetime import timedelta
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),  # Production: 15 minutes
-    'REFRESH_TOKEN_LIFETIME': timedelta(hours=24),   # Production: 24 hours
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=7),      # Production: 7 days
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),     # Production: 7 days
     'AUTH_HEADER_TYPES': ('Bearer',),
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,

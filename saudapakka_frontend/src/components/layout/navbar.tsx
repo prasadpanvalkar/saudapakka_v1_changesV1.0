@@ -25,7 +25,7 @@ export default function Navbar() {
           {/* Logo */}
           <Link href="/" className="flex-shrink-0 cursor-pointer" onClick={closeMobileMenu}>
             <h1 className="text-xl sm:text-2xl font-bold text-[#2D5F3F]">
-              sauda<span className="text-[#4A9B6D]">pakka.com</span>
+              Sauda<span className="text-[#4A9B6D]">pakka.com</span>
             </h1>
           </Link>
 

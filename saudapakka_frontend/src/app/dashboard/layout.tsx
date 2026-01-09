@@ -59,6 +59,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   // Get user role badge
   const getUserRole = () => {
+    if (user?.is_staff) return { label: "Administrator", color: "bg-red-600" };
     if (user?.is_active_broker) return { label: "Broker", color: "bg-blue-500" };
     if (user?.is_active_seller) return { label: "Seller", color: "bg-purple-500" };
     return { label: "Consumer", color: "bg-accent-green" };

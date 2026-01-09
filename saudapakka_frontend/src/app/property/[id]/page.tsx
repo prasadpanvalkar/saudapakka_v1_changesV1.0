@@ -59,6 +59,15 @@ const formatAmenityName = (key: string): string => {
     .replace(/\b\w/g, char => char.toUpperCase());
 };
 
+// Helper to format uppercase_underscore strings to Title Case Spaced
+const formatLabel = (text: string | undefined) => {
+  if (!text) return "";
+  return text
+    .toLowerCase()
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+};
+
 const formatDocumentName = (key: string): string => {
   const names: Record<string, string> = {
     doc_7_12_or_pr_card: '7/12 Extract / PR Card',
@@ -73,7 +82,7 @@ const formatDocumentName = (key: string): string => {
     gst_registration: 'GST Registration',
     sale_deed_registration_copy: 'Sale Deed Copy',
   };
-  return names[key] || key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  return names[key] || formatLabel(key);
 };
 
 const getImageUrl = (path: string | undefined): string => {
@@ -142,6 +151,10 @@ export default function PropertyDetailsPage() {
       if (res.data.images?.length > 0) {
         setActiveImage(res.data.images[0].image);
       }
+      // Sync saved state if available
+      if (res.data.is_saved !== undefined) {
+        setIsSaved(res.data.is_saved);
+      }
     } catch (error) {
       console.error("Error fetching details", error);
     } finally {
@@ -158,11 +171,17 @@ export default function PropertyDetailsPage() {
   };
 
   const toggleSave = async () => {
+    if (!user) {
+      const currentUrl = encodeURIComponent(window.location.pathname);
+      router.push(`/login?redirect=${currentUrl}`);
+      return;
+    }
+
     try {
       await api.post(`/api/properties/${id}/save_property/`);
       setIsSaved(!isSaved);
     } catch (error) {
-      showNotify("Please login to save properties.", "error");
+      showNotify("Could not save property.", "error");
     }
   };
 
@@ -199,7 +218,7 @@ export default function PropertyDetailsPage() {
 
   const formatPrice = (price: number) => {
     if (price >= 10000000) return `₹${(price / 10000000).toFixed(2)} Cr`;
-    if (price >= 100000) return `₹${(price / 100000).toFixed(2)} Lac`;
+    if (price >= 100000) return `₹${(price / 100000).toFixed(0)} Lac`;
     return `₹${price.toLocaleString("en-IN")}`;
   };
 
@@ -294,7 +313,7 @@ export default function PropertyDetailsPage() {
     <>
       <Navbar />
 
-      <div className="min-h-screen bg-gray-50 pt-16 sm:pt-20 pb-8 sm:pb-12">
+      <div className="min-h-screen bg-gray-50 pt-16 sm:pt-20 pb-28 sm:pb-12">
         <div className="max-w-7xl mx-auto">
 
           {/* Back Button - Desktop */}
@@ -318,15 +337,21 @@ export default function PropertyDetailsPage() {
           </div>
 
           {/* Mobile Back Button */}
-          <div className="sm:hidden px-4 py-3 bg-white border-b border-gray-100">
+          <div className="sm:hidden px-4 py-3 bg-white border-b border-gray-100 sticky top-[56px] z-30">
             <Button
               variant="ghost"
-              onClick={() => router.back()}
+              onClick={() => {
+                if (typeof window !== 'undefined' && window.history.length > 2) {
+                  router.back();
+                } else {
+                  router.push('/search');
+                }
+              }}
               className="-ml-2 text-gray-700 hover:text-[#2D5F3F]"
               size="sm"
             >
               <ArrowLeft className="w-4 h-4 mr-1" />
-              Back
+              Back to Listings
             </Button>
           </div>
 
@@ -380,8 +405,6 @@ export default function PropertyDetailsPage() {
                       <span className="text-[#2D5F3F] font-semibold text-[10px] sm:text-xs">Verified</span>
                     </div>
                   )}
-
-
 
                   {/* Image Counter & View All */}
                   <div className="absolute bottom-3 sm:bottom-4 left-3 right-3 sm:left-4 sm:right-4 flex items-center justify-between z-20">
@@ -532,10 +555,12 @@ export default function PropertyDetailsPage() {
                     <div className="text-2xl font-bold text-gray-900">{property.carpet_area}</div>
                     <div className="text-sm text-gray-600">Sq Ft</div>
                   </div>
-                  <div className="text-center p-4 bg-gradient-to-br from-[#E8F5E9] to-[#E8F5E9]/50 rounded-xl hover:shadow-md transition-all">
+                  <div className="text-center p-4 bg-gradient-to-br from-[#E8F5E9] to-[#E8F5E9]/50 rounded-xl hover:shadow-md transition-all flex flex-col justify-center">
                     <Building className="w-8 h-8 mx-auto text-[#4A9B6D] mb-2" />
-                    <div className="text-xl font-bold text-gray-900">{property.property_type}</div>
-                    <div className="text-sm text-gray-600">{property.sub_type_display || "Standard"}</div>
+                    <div className="text-lg font-bold text-gray-900 break-words leading-tight line-clamp-2">
+                      {formatLabel(property.property_type)}
+                    </div>
+                    <div className="text-sm text-gray-600 truncate mt-1">{formatLabel(property.sub_type_display) || "Standard"}</div>
                   </div>
                 </div>
 
@@ -557,17 +582,21 @@ export default function PropertyDetailsPage() {
               {/* Quick Stats - Mobile Only */}
               <div className="sm:hidden bg-white px-4 py-4 mb-4">
                 <h2 className="text-base font-bold text-gray-900 mb-3">Property Details</h2>
-                <div className="grid grid-cols-4 gap-2.5">
-                  <div className="text-center p-3 bg-gradient-to-br from-[#E8F5E9] to-[#E8F5E9]/50 rounded-xl">
-                    <Bed className="w-6 h-6 text-[#4A9B6D] mx-auto mb-1.5" />
-                    <div className="text-lg font-bold text-gray-900">{property.bhk_config}</div>
-                    <div className="text-[10px] text-gray-600 leading-tight">Beds</div>
-                  </div>
-                  <div className="text-center p-3 bg-gradient-to-br from-[#E8F5E9] to-[#E8F5E9]/50 rounded-xl">
-                    <Bath className="w-6 h-6 text-[#4A9B6D] mx-auto mb-1.5" />
-                    <div className="text-lg font-bold text-gray-900">{property.bathrooms}</div>
-                    <div className="text-[10px] text-gray-600 leading-tight">Baths</div>
-                  </div>
+                <div className="grid grid-cols-2 gap-2.5">
+                  {property.bhk_config > 0 && (
+                    <div className="text-center p-3 bg-gradient-to-br from-[#E8F5E9] to-[#E8F5E9]/50 rounded-xl">
+                      <Bed className="w-6 h-6 text-[#4A9B6D] mx-auto mb-1.5" />
+                      <div className="text-lg font-bold text-gray-900">{property.bhk_config}</div>
+                      <div className="text-[10px] text-gray-600 leading-tight">Beds</div>
+                    </div>
+                  )}
+                  {property.bathrooms > 0 && (
+                    <div className="text-center p-3 bg-gradient-to-br from-[#E8F5E9] to-[#E8F5E9]/50 rounded-xl">
+                      <Bath className="w-6 h-6 text-[#4A9B6D] mx-auto mb-1.5" />
+                      <div className="text-lg font-bold text-gray-900">{property.bathrooms}</div>
+                      <div className="text-[10px] text-gray-600 leading-tight">Baths</div>
+                    </div>
+                  )}
                   <div className="text-center p-3 bg-gradient-to-br from-[#E8F5E9] to-[#E8F5E9]/50 rounded-xl">
                     <Ruler className="w-6 h-6 text-[#4A9B6D] mx-auto mb-1.5" />
                     <div className="text-sm font-bold text-gray-900">{property.carpet_area}</div>
@@ -575,8 +604,8 @@ export default function PropertyDetailsPage() {
                   </div>
                   <div className="text-center p-3 bg-gradient-to-br from-[#E8F5E9] to-[#E8F5E9]/50 rounded-xl">
                     <Building className="w-6 h-6 text-[#4A9B6D] mx-auto mb-1.5" />
-                    <div className="text-[10px] font-bold text-gray-900 leading-tight">{property.property_type}</div>
-                    <div className="text-[10px] text-gray-600 leading-tight">{property.sub_type_display || "Type"}</div>
+                    <div className="text-sm font-bold text-gray-900 leading-tight break-words">{formatLabel(property.property_type)}</div>
+                    <div className="text-[10px] text-gray-600 leading-tight mt-1">{formatLabel(property.sub_type_display) || "Type"}</div>
                   </div>
                 </div>
               </div>
@@ -595,36 +624,30 @@ export default function PropertyDetailsPage() {
                 </div>
               </div>
 
-              {/* Contact CTAs - Mobile */}
-              <div className="sm:hidden bg-white px-4 py-4 mb-4">
-                <div className="space-y-2.5">
+
+
+              {/* Spacer for Sticky Footer */}
+              <div className="h-24 sm:hidden"></div>
+
+              {/* Mobile Sticky Footer - Action Buttons */}
+              <div className="fixed bottom-0 left-0 right-0 p-3 bg-white border-t border-gray-200 sm:hidden z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] pb-safe">
+                <div className="grid grid-cols-2 gap-3">
                   <Button
                     onClick={handleContactOwner}
-                    className="w-full bg-gradient-to-r from-[#2D5F3F] to-[#4A9B6D] text-white py-3.5 rounded-xl font-semibold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                    className="w-full bg-[#2D5F3F] text-white rounded-xl font-semibold hover:shadow-lg transition-all flex items-center justify-center gap-2 h-12"
                     disabled={contactLoading}
                   >
                     {contactLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Phone className="w-5 h-5" />}
-                    Contact Owner
+                    Contact
                   </Button>
-
-                  <div className="grid grid-cols-2 gap-2.5">
-                    <Button
-                      variant="outline"
-                      onClick={() => showNotify("Schedule feature coming soon!", "info")}
-                      className="border-2 border-[#4A9B6D] text-[#4A9B6D] py-3 rounded-xl font-semibold hover:bg-[#E8F5E9]/50 transition-all flex items-center justify-center gap-2 text-sm"
-                    >
-                      <Calendar className="w-4 h-4" />
-                      Schedule
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={handleWhatsAppClick}
-                      className="w-full border-2 border-[#2D5F3F] text-[#2D5F3F] py-3 rounded-xl font-semibold hover:bg-[#E8F5E9]/50 transition-all flex items-center justify-center gap-2 text-sm"
-                    >
-                      <MessageCircle className="w-4 h-4" />
-                      Message
-                    </Button>
-                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={handleWhatsAppClick}
+                    className="w-full border-2 border-[#25D366] text-[#25D366] bg-green-50 hover:bg-[#25D366]/10 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 h-12"
+                  >
+                    <MessageCircle className="w-5 h-5" />
+                    WhatsApp
+                  </Button>
                 </div>
               </div>
 

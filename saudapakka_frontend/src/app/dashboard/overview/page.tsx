@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Cookies from "js-cookie";
 import { useAuth } from "@/hooks/use-auth";
@@ -14,7 +15,8 @@ import {
   UserCheck,
   FileText,
   Eye,
-  ArrowRight
+  ArrowRight,
+  ShieldCheck
 } from "lucide-react";
 
 // --- COMPONENT: STAT CARD ---
@@ -189,8 +191,52 @@ function BuyerDashboard({ user }: { user: any }) {
   );
 }
 
+// --- COMPONENT: ADMIN DASHBOARD ---
+function AdminDashboard({ user }: { user: any }) {
+  return (
+    <div className="space-y-8">
+      {/* Welcome Banner */}
+      <div className="bg-gradient-to-r from-gray-800 to-gray-900 rounded-3xl p-8 text-white relative overflow-hidden shadow-xl">
+        <div className="relative z-10 max-w-xl">
+          <h2 className="text-3xl font-bold mb-4">Admin Control Center</h2>
+          <p className="text-white/90 mb-8 text-lg">
+            You have administrator privileges. Use the backend panel to manage users, listings, and system settings.
+          </p>
+          <div className="flex gap-4">
+            <Link href="/admin">
+              <button className="bg-white text-gray-900 px-6 py-3 rounded-xl font-bold hover:bg-gray-50 transition-colors flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4" /> Go to Admin Panel
+              </button>
+            </Link>
+          </div>
+        </div>
+        {/* Background Decor */}
+        <div className="absolute right-0 bottom-0 opacity-10 transform translate-x-10 translate-y-10">
+          <ShieldCheck className="w-64 h-64 text-white" />
+        </div>
+      </div>
+
+      {/* Stats & Links */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+          <div className="text-gray-500 text-sm font-medium uppercase tracking-wider mb-1">System Status</div>
+          <div className="text-3xl font-bold text-green-600 flex items-center gap-2">
+            Online <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+          <div className="text-gray-500 text-sm font-medium uppercase tracking-wider mb-1">Role</div>
+          <div className="text-xl font-bold text-gray-900">Super Admin</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // --- MAIN PAGE ---
 export default function OverviewPage() {
+  const router = useRouter();
   const { user } = useAuth();
   const [mounted, setMounted] = useState(false);
   const [currentDate, setCurrentDate] = useState("");
@@ -200,8 +246,18 @@ export default function OverviewPage() {
     setCurrentDate(new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }));
   }, []);
 
+  // Redirect admins immediately to the admin panel
+  useEffect(() => {
+    if (user?.is_staff) {
+      router.replace("/admin");
+    }
+  }, [user, router]);
+
   if (!mounted) return null;
   if (!user) return <div className="p-8">Loading dashboard...</div>;
+
+  // Prevent flash of content for admins before redirect
+  if (user.is_staff) return null;
 
   const isSellerOrBroker = user.is_active_seller || user.is_active_broker;
 
@@ -221,7 +277,9 @@ export default function OverviewPage() {
       </div>
 
       {/* Conditional Dashboard */}
-      {isSellerOrBroker ? (
+      {user.is_staff ? (
+        <AdminDashboard user={user} />
+      ) : isSellerOrBroker ? (
         <SellerDashboard user={user} />
       ) : (
         <BuyerDashboard user={user} />

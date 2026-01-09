@@ -10,7 +10,7 @@ export default function Footer() {
           {/* 1. Company Info */}
           <div>
             <h3 className="text-2xl font-bold mb-4">
-              sauda<span className="text-accent-green">pakka.com</span>
+              Sauda<span className="text-accent-green">pakka.com</span>
             </h3>
             <p className="text-gray-300 mb-6 leading-relaxed">
               Your trusted partner for 100% verified premium real estate listings. Experience transparency like never before.
