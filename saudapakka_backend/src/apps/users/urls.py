@@ -5,10 +5,12 @@ from .views import (
     AdminDashboardStats, UserProfileView, KYCCallbackView,
     AdminUserDocumentView, AdminVerifyUserView
 )
+from rest_framework_simplejwt.views import TokenRefreshView
 
 urlpatterns = [
     path('auth/login/', SendOtpView.as_view(), name='login-otp'),
     path('auth/verify/', VerifyOtpView.as_view(), name='verify-otp'),
+    path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('user/me/', UserProfileView.as_view(), name='user-profile'),
     path('user/upgrade/', UpgradeRoleView.as_view(), name='upgrade-role'),
     path('search-profiles/', SearchProfileView.as_view(), name='search-profiles'),

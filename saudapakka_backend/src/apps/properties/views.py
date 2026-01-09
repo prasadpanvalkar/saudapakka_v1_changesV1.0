@@ -57,12 +57,7 @@ class PropertyViewSet(viewsets.ModelViewSet):
         if user.is_staff:
             return base_query.order_by('-created_at')
         
-        if user.is_authenticated:
-            # Allow users to see VERIFIED properties AND their own properties (regardless of status)
-            return base_query.filter(
-                Q(verification_status='VERIFIED') | Q(owner=user)
-            ).order_by('-created_at').distinct()
-            
+        # Public & Authenticated Users: Only show VERIFIED properties
         return base_query.filter(verification_status='VERIFIED').order_by('-created_at')
 
     def perform_create(self, serializer):

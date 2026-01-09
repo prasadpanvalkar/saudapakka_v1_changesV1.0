@@ -17,7 +17,7 @@ interface User {
 
 interface AuthState {
   user: User | null;
-  setAuth: (user: User, token: string) => void;
+  setAuth: (user: User, token: string, refreshToken: string) => void;
   logout: () => void;
   refreshUser: () => Promise<void>;
   checkUser: () => Promise<void>; // Alias for layouts
@@ -28,8 +28,9 @@ export const useAuth = create<AuthState>()(
     (set, get) => ({
       user: null,
 
-      setAuth: (user, token) => {
+      setAuth: (user, token, refreshToken) => {
         Cookies.set('access_token', token, { expires: 7 });
+        Cookies.set('refresh_token', refreshToken, { expires: 7 });
         set({ user });
       },
 
@@ -41,28 +42,30 @@ export const useAuth = create<AuthState>()(
           console.log("✅ Auth State Synchronized:", res.data);
         } catch (error: any) {
           console.error("Failed to refresh user data", error);
-          // If unauthorized, clear token and redirect to login
+          // Interceptor handles 401 and redirect if refresh fails
+          // We just need to ensure local state is cleared if that happens
           if (error.response?.status === 401) {
-            Cookies.remove('access_token');
             set({ user: null });
-            // Optionally, you could trigger a router redirect here, but layout will handle it via checkUser
-          } else {
-            set({ user: null }); // Ensure user is cleared for other errors
           }
-          throw error; // Propagate error so checkUser/layout knows auth failed
+          throw error;
         }
       },
 
       // Use this in layouts to ensure fresh data on every navigation
       checkUser: async () => {
         const token = Cookies.get('access_token');
-        if (token) {
+        const refreshToken = Cookies.get('refresh_token');
+
+        // As long as we have a refresh token, we technically have a session
+        // The interceptor will swap it for a new access token if needed
+        if (token || refreshToken) {
           await get().refreshUser();
         }
       },
 
       logout: () => {
         Cookies.remove('access_token');
+        Cookies.remove('refresh_token');
         localStorage.removeItem('saudapakka-auth'); // Clear storage
         set({ user: null });
       },

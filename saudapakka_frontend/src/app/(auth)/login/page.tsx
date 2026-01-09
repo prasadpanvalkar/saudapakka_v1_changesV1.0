@@ -41,11 +41,12 @@ export default function LoginPage() {
 
       const data = res.data;
       const accessToken = data.access || data.token || data.tokens?.access;
+      const refreshToken = data.refresh || data.tokens?.refresh;
       const user = data.user || data;
 
       if (!accessToken) throw new Error("No access token found");
 
-      setAuth(user, accessToken);
+      setAuth(user, accessToken, refreshToken);
 
       if (user.is_staff) {
         router.push("/admin");
