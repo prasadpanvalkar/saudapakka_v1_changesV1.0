@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'apps.users',
     'apps.properties',
     'apps.mandates',
+    'apps.notifications',
     'apps.admin_panel',
 ]
 

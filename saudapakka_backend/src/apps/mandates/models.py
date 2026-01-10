@@ -33,7 +33,8 @@ class Mandate(models.Model):
         ('ACTIVE', 'Active'),
         ('REJECTED', 'Rejected'),
         ('EXPIRED', 'Expired'),
-        ('TERMINATED', 'Terminated Early')
+        ('TERMINATED', 'Terminated Early'),
+        ('TERMINATED_BY_USER', 'Terminated by User')
     ]
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
     
@@ -45,6 +46,11 @@ class Mandate(models.Model):
 
     seller_signature = models.ImageField(upload_to='signatures/sellers/', null=True, blank=True)
     broker_signature = models.ImageField(upload_to='signatures/brokers/', null=True, blank=True)
+    
+    # New fields for mandate upgrade
+    rejection_reason = models.TextField(null=True, blank=True)
+    renewed_from = models.ForeignKey('self', null=True, blank=True, on_delete=models.SET_NULL, related_name='renewals')
+    is_near_expiry_notified = models.BooleanField(default=False)
     
     @property
     def is_expired(self):

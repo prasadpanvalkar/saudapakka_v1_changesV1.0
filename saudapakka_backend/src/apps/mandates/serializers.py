@@ -38,9 +38,11 @@ class MandateSerializer(serializers.ModelSerializer):
             'days_remaining',
             'is_expired',
             'seller_signature', 
-            'broker_signature'
+            'broker_signature',
+            'rejection_reason',
+            'renewed_from'
         ]
-        read_only_fields = ['status', 'acceptance_expires_at', 'end_date', 'signed_at']
+        read_only_fields = ['status', 'acceptance_expires_at', 'end_date', 'signed_at', 'seller']
 
     def get_seller_name(self, obj):
         if obj.seller:
@@ -48,6 +50,8 @@ class MandateSerializer(serializers.ModelSerializer):
         return "Unknown Seller"
 
     def get_broker_name(self, obj):
+        if obj.deal_type == 'WITH_PLATFORM':
+            return "SaudaPakka (Platform)"
         if obj.broker:
             # Check if it's the Platform Admin
             if obj.broker.is_superuser:

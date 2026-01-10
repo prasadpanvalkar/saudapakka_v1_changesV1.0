@@ -16,6 +16,7 @@ urlpatterns = [
     path('api/', include('apps.properties.urls')), # <-- UNCOMMENT THIS NOW
     path('api/admin/', include('apps.admin_panel.urls')), 
     path('api/', include('apps.mandates.urls')),
+    path('api/', include('apps.notifications.urls')),
     path('health/', health_check, name='health_check'),
 
     # path('api/admin-panel/', include(admin_router.urls)),
