@@ -29,6 +29,7 @@ class PropertySerializer(serializers.ModelSerializer):
     # --- Computed Fields ---
     has_7_12 = serializers.SerializerMethodField()
     has_mojani = serializers.SerializerMethodField()
+    has_active_mandate = serializers.SerializerMethodField()
 
     class Meta:
         model = Property
@@ -72,7 +73,7 @@ class PropertySerializer(serializers.ModelSerializer):
             'mojani_nakasha',
             'doc_7_12_or_pr_card',
             'title_search_report',
-            'has_7_12', 'has_mojani',
+            'has_7_12', 'has_mojani', 'has_active_mandate',
 
             # Legal Docs (Optional)
             'rera_project_certificate',
@@ -171,6 +172,13 @@ class PropertySerializer(serializers.ModelSerializer):
 
     def get_has_mojani(self, obj):
         return bool(obj.mojani_nakasha)
+
+    def get_has_active_mandate(self, obj):
+        from apps.mandates.models import Mandate
+        return Mandate.objects.filter(
+            property_item=obj, 
+            status__in=['ACTIVE', 'PENDING']
+        ).exists()
 
 class AdminPropertySerializer(PropertySerializer):
     """

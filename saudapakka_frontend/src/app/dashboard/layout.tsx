@@ -13,7 +13,8 @@ import {
   X,
   Heart,
   Home,
-  UserCircle
+  UserCircle,
+  Gavel
 } from "lucide-react";
 import Link from "next/link";
 
@@ -88,7 +89,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const navigation = [
     { name: "Overview", href: "/dashboard/overview", icon: LayoutDashboard },
     ...(user?.is_active_seller || user?.is_active_broker
-      ? [{ name: "My Listings", href: "/dashboard/my-listings", icon: Building2 }]
+      ? [
+        { name: "My Listings", href: "/dashboard/my-listings", icon: Building2 },
+        { name: "Manage Mandate", href: "/dashboard/mandates", icon: Gavel }
+      ]
       : [{ name: "Saved Properties", href: "/dashboard/saved", icon: Heart }]),
     { name: "Identity Verification", href: "/dashboard/kyc", icon: ShieldCheck },
     // { name: "My Profile", href: "/dashboard/profile", icon: UserCircle },

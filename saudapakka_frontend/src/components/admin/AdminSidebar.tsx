@@ -27,6 +27,7 @@ export default function AdminSidebar() {
         { name: "Overview", href: "/admin", icon: ChartPieIcon },
         { name: "User Management", href: "/admin/users", icon: UsersIcon },
         { name: "Properties", href: "/admin/properties", icon: HomeModernIcon },
+        { name: "Mandate Requests", href: "/admin/mandates", icon: DocumentCheckIcon },
         { name: "Home Website", href: "/", icon: HomeIcon },
     ];
 

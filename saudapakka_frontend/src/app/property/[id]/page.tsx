@@ -518,6 +518,19 @@ export default function PropertyDetailsPage() {
                         <Share2 className="w-5 h-5 mr-2.5" />
                         Share
                       </Button>
+
+                      {/* Broker Actions - Checks for active broker AND no active/pending mandate */}
+                      {user?.is_active_broker && !property.has_active_mandate && (
+                        <Link href={`/dashboard/mandates/create?propertyId=${id}`}>
+                          <Button
+                            className="h-12 px-6 rounded-2xl bg-[#4A9B6D] hover:bg-[#2D5F3F] text-white font-semibold shadow-sm hover:shadow-lg transition-all"
+                          >
+                            <FileText className="w-5 h-5 mr-2" />
+                            Initiate Mandate
+                          </Button>
+                        </Link>
+                      )}
+                      {/* Show disabled/status button if mandate exists? Optional, for now just hide as requested */}
                     </div>
                   </div>
 
@@ -542,12 +555,12 @@ export default function PropertyDetailsPage() {
                 <div className="grid grid-cols-4 gap-4 mb-8">
                   <div className="text-center p-4 bg-gradient-to-br from-[#E8F5E9] to-[#E8F5E9]/50 rounded-xl hover:shadow-md transition-all">
                     <Bed className="w-8 h-8 mx-auto text-[#4A9B6D] mb-2" />
-                    <div className="text-2xl font-bold text-gray-900">{property.bhk_config}</div>
+                    <div className="text-2xl font-bold text-gray-900">{property.bhk_config ?? 0}</div>
                     <div className="text-sm text-gray-600">Bedrooms</div>
                   </div>
                   <div className="text-center p-4 bg-gradient-to-br from-[#E8F5E9] to-[#E8F5E9]/50 rounded-xl hover:shadow-md transition-all">
                     <Bath className="w-8 h-8 mx-auto text-[#4A9B6D] mb-2" />
-                    <div className="text-2xl font-bold text-gray-900">{property.bathrooms}</div>
+                    <div className="text-2xl font-bold text-gray-900">{property.bathrooms ?? 0}</div>
                     <div className="text-sm text-gray-600">Bathrooms</div>
                   </div>
                   <div className="text-center p-4 bg-gradient-to-br from-[#E8F5E9] to-[#E8F5E9]/50 rounded-xl hover:shadow-md transition-all">
@@ -583,17 +596,17 @@ export default function PropertyDetailsPage() {
               <div className="sm:hidden bg-white px-4 py-4 mb-4">
                 <h2 className="text-base font-bold text-gray-900 mb-3">Property Details</h2>
                 <div className="grid grid-cols-2 gap-2.5">
-                  {property.bhk_config > 0 && (
+                  {(property.bhk_config || 0) > 0 && (
                     <div className="text-center p-3 bg-gradient-to-br from-[#E8F5E9] to-[#E8F5E9]/50 rounded-xl">
                       <Bed className="w-6 h-6 text-[#4A9B6D] mx-auto mb-1.5" />
-                      <div className="text-lg font-bold text-gray-900">{property.bhk_config}</div>
+                      <div className="text-lg font-bold text-gray-900">{property.bhk_config ?? 0}</div>
                       <div className="text-[10px] text-gray-600 leading-tight">Beds</div>
                     </div>
                   )}
-                  {property.bathrooms > 0 && (
+                  {(property.bathrooms || 0) > 0 && (
                     <div className="text-center p-3 bg-gradient-to-br from-[#E8F5E9] to-[#E8F5E9]/50 rounded-xl">
                       <Bath className="w-6 h-6 text-[#4A9B6D] mx-auto mb-1.5" />
-                      <div className="text-lg font-bold text-gray-900">{property.bathrooms}</div>
+                      <div className="text-lg font-bold text-gray-900">{property.bathrooms ?? 0}</div>
                       <div className="text-[10px] text-gray-600 leading-tight">Baths</div>
                     </div>
                   )}
@@ -648,6 +661,18 @@ export default function PropertyDetailsPage() {
                     <MessageCircle className="w-5 h-5" />
                     WhatsApp
                   </Button>
+
+                  {/* Broker Action Mobile - Conditional */}
+                  {user?.is_active_broker && !property.has_active_mandate && (
+                    <div className="col-span-2 mt-2">
+                      <Link href={`/dashboard/mandates/create?propertyId=${id}`}>
+                        <Button className="w-full h-12 rounded-xl bg-[#4A9B6D] hover:bg-[#2D5F3F] text-white font-semibold shadow-sm flex items-center justify-center">
+                          <FileText className="w-5 h-5 mr-2" />
+                          Initiate Mandate
+                        </Button>
+                      </Link>
+                    </div>
+                  )}
                 </div>
               </div>
 

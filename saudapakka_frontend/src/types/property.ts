@@ -117,6 +117,7 @@ export interface PropertyDetail {
     // Document Existence Checks
     has_7_12?: boolean;
     has_mojani?: boolean;
+    has_active_mandate?: boolean;
 
     // Actual Documents (URLs)
     building_commencement_certificate?: string | null;

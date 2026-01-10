@@ -232,10 +232,9 @@ class MandateViewSet(viewsets.ModelViewSet):
             user = User.objects.get(phone_number=mobile, is_active_broker=True)
             return Response({
                 "id": user.id,
-                "first_name": user.first_name,
-                "last_name": user.last_name,
-                "email": user.email,
-                "phone_number": user.phone_number
+                "full_name": user.full_name,
+                "mobile_number": user.phone_number,
+                "email": user.email
             })
         except User.DoesNotExist:
             return Response({"error": "Broker not found with this number."}, status=404)

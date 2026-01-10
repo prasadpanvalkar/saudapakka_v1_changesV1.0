@@ -28,8 +28,24 @@ export default function LoginPage() {
     } catch (error) {
       alert("Error sending OTP. Please check your connection.");
       console.error(error);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
+  };
+
+  // 1.5 Resend OTP
+  const handleResendOtp = async () => {
+    if (!email) return;
+    setLoading(true);
+    try {
+      await api.post("/api/auth/login/", { email });
+      alert(`New OTP sent to ${email}`);
+    } catch (error) {
+      console.error("Resend Error:", error);
+      alert("Failed to resend OTP. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   // 2. Verify OTP
@@ -163,13 +179,22 @@ export default function LoginPage() {
                   {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Verify & Login"}
                 </Button>
 
-                <div className="text-center">
+                <div className="text-center space-y-3">
                   <button
-                    onClick={() => setStep("EMAIL")}
-                    className="text-sm text-gray-400 hover:text-accent-green transition-colors font-medium"
+                    onClick={handleResendOtp}
+                    disabled={loading}
+                    className="text-sm text-primary-green hover:text-dark-green font-semibold transition-colors disabled:opacity-50"
                   >
-                    Change Email Address
+                    Resend OTP
                   </button>
+                  <div className="block">
+                    <button
+                      onClick={() => setStep("EMAIL")}
+                      className="text-sm text-gray-400 hover:text-accent-green transition-colors font-medium"
+                    >
+                      Change Email Address
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
