@@ -1,4 +1,5 @@
 from rest_framework import viewsets, permissions, status
+from django.db.models import Q
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.utils import timezone
@@ -14,9 +15,15 @@ class MandateViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
+        if not user or not user.is_authenticated:
+            return Mandate.objects.none()
+            
         if user.is_staff:
             return Mandate.objects.all()
-        return Mandate.objects.filter(seller=user) | Mandate.objects.filter(broker=user)
+            
+        return Mandate.objects.filter(
+            Q(seller=user) | Q(broker=user)
+        ).distinct()
 
     def notify_user(self, recipient, title, message, action_url=None):
         if recipient:
@@ -29,12 +36,26 @@ class MandateViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         user = self.request.user
-        initiated_by = self.request.data.get('initiated_by')
+        initiated_by_payload = self.request.data.get('initiated_by')
         
+        # Enforce server-side validation for initiated_by
+        if user.is_active_broker:
+             initiated_by = 'BROKER'
+        elif user.is_active_seller:
+             initiated_by = 'SELLER'
+        else:
+             # Default fallback or error? Let's respect payload if it matches role, else force logic
+             # If user is BOTH, payload decides.
+             initiated_by = initiated_by_payload
+
+        # Helper to ensure data integrity
+        if initiated_by == 'BROKER' and not user.is_active_broker:
+             raise ValidationError("You must be an active broker to initiate as BROKER.")
+             
         # Check for existing processing/active mandates for this property
         property_obj = serializer.validated_data.get('property_item')
         if Mandate.objects.filter(property_item=property_obj, status__in=['PENDING', 'ACTIVE']).exists():
-             raise ValidationError("This property already has an active or pending mandate. You must cancel or wait for it to expire before initiating a new one.")
+             raise ValidationError("This property already has an active or pending mandate.")
         
         mandate = None
         recipient = None
@@ -46,16 +67,33 @@ class MandateViewSet(viewsets.ModelViewSet):
                  raise ValidationError("Property details required.")
             
             seller = property_instance.owner
-            mandate = serializer.save(broker=user, initiated_by='BROKER', seller=seller)
+            
+            # Map signature: BROKER is initiating, so signature in payload maps to broker_signature
+            # Note: request.FILES logic happens in serializer usually, but we can double check
+            
+            sys_broker_sig = self.request.FILES.get('broker_signature') or self.request.data.get('broker_signature')
+            
+            mandate = serializer.save(
+                broker=user, 
+                initiated_by='BROKER', 
+                seller=seller,
+                broker_signature=sys_broker_sig 
+            )
             recipient = mandate.seller
 
         elif initiated_by == 'SELLER':
-            broker_id = self.request.data.get('broker')
             deal_type = self.request.data.get('deal_type')
             
+            sys_seller_sig = self.request.FILES.get('seller_signature') or self.request.data.get('seller_signature')
+
             if deal_type == 'WITH_PLATFORM':
-                 mandate = serializer.save(seller=user, initiated_by='SELLER', deal_type='WITH_PLATFORM')
-                 # Notify all admins or specific staff
+                 mandate = serializer.save(
+                     seller=user, 
+                     initiated_by='SELLER', 
+                     deal_type='WITH_PLATFORM',
+                     seller_signature=sys_seller_sig
+                 )
+                 # Notify all admins
                  admins = User.objects.filter(is_superuser=True)
                  for admin in admins:
                      self.notify_user(
@@ -65,23 +103,23 @@ class MandateViewSet(viewsets.ModelViewSet):
                         action_url=f"/admin/mandates/{mandate.id}"
                      )
             else:
+                broker_id = self.request.data.get('broker')
                 if not broker_id:
                      raise ValidationError("You must specify which Broker you are hiring.")
-                mandate = serializer.save(seller=user, initiated_by='SELLER')
+                mandate = serializer.save(
+                    seller=user, 
+                    initiated_by='SELLER',
+                    seller_signature=sys_seller_sig
+                )
                 recipient = mandate.broker
 
-        # Check for Initiator Signature (Optional but recommended to validate)
-        # If initiated_by SELLER, verify seller_signature in request.FILES or request.data
-        # Note: In DRF, file uploads are in request.data if using MultiPartParser.
-        # We assume serializer validation allows it, but we can enforce it here if strictness is needed.
-        
         # Send Notification to Partner (if not platform)
         if recipient:
             self.notify_user(
                 recipient=recipient,
                 title="New Mandate Request",
                 message=f"{user.full_name} has initiated a mandate request for {mandate.property_item.title}.",
-                action_url=f"/mandates/{mandate.id}"
+                action_url=f"/dashboard/mandates/{mandate.id}"
             )
 
     @action(detail=True, methods=['post'])
@@ -116,26 +154,33 @@ class MandateViewSet(viewsets.ModelViewSet):
         else:
              return Response({"error": "You are not a party to this mandate."}, status=403)
 
-        # Check if both signed (Initiator usually signs on creation, but if not we check both)
-        # Assuming initiator sign is handled in frontend by passing it during create? 
-        # Actually logic is: Initiator signs -> Pending Partner Sign. 
-        # So this action is strictly for the PARTNER.
-        
         mandate.status = 'ACTIVE'
         mandate.start_date = timezone.now().date()
         mandate.save()
 
         # Notify the OTHER party (the initiator)
-        initiator = mandate.seller if signer_role in ['BROKER', 'ADMIN'] else mandate.broker
-        if mandate.deal_type == 'WITH_PLATFORM' and signer_role == 'SELLER':
-             # Notify admin?
-             pass
-        elif initiator:
+        # If deal type is Platform, and Admin just signed, notify Seller.
+        # If initiated by Seller, and Broker signed, notify Seller.
+        # If initiated by Broker, and Seller signed, notify Broker.
+        
+        recipient_to_notify = None
+        
+        if mandate.deal_type == 'WITH_PLATFORM':
+            if signer_role == 'ADMIN':
+                 recipient_to_notify = mandate.seller
+        else:
+            # For broker deals, notify the one who STARTED it (Initiator)
+            if mandate.initiated_by == 'SELLER':
+                recipient_to_notify = mandate.seller
+            elif mandate.initiated_by == 'BROKER':
+                recipient_to_notify = mandate.broker
+
+        if recipient_to_notify:
              self.notify_user(
-                recipient=initiator,
+                recipient=recipient_to_notify,
                 title="Mandate Accepted",
                 message=f"Your mandate for {mandate.property_item.title} has been accepted and signed.",
-                action_url=f"/mandates/{mandate.id}"
+                action_url=f"/dashboard/mandates/{mandate.id}"
             )
 
         return Response({"message": "Mandate signed and activated."})
@@ -153,24 +198,19 @@ class MandateViewSet(viewsets.ModelViewSet):
         mandate.save()
         
         # Notify Initiator
-        initiator = mandate.seller if mandate.initiated_by == 'SELLER' else mandate.broker
+        recipient = None
+        if mandate.initiated_by == 'SELLER':
+            recipient = mandate.seller
+        elif mandate.initiated_by == 'BROKER':
+            recipient = mandate.broker
         
-        # Correct logic: If initiated by seller, notify seller. If initiated by broker, notify broker.
-        # But wait, initiated_by tells who STARTED it. The rejector is the OTHER one.
-        # So we notify the person who initiated it.
-        
-        recipient = mandate.seller if mandate.initiated_by == 'SELLER' else mandate.broker
-        # If deal is with platform and no broker assigned yet?
-        if mandate.deal_type == 'WITH_PLATFORM' and mandate.initiated_by == 'BROKER':
-             # Edge case, unlikely
-             pass
-        
-        self.notify_user(
-            recipient=recipient,
-            title="Mandate Rejected",
-            message=f"Your mandate request for {mandate.property_item.title} was rejected. Reason: {reason}",
-            action_url=f"/mandates/{mandate.id}"
-        )
+        if recipient:
+            self.notify_user(
+                recipient=recipient,
+                title="Mandate Rejected",
+                message=f"Your mandate request for {mandate.property_item.title} was rejected. Reason: {reason}",
+                action_url=f"/dashboard/mandates/{mandate.id}"
+            )
         
         return Response({"message": "Mandate rejected."})
 
@@ -203,8 +243,7 @@ class MandateViewSet(viewsets.ModelViewSet):
             seller=old_mandate.seller,
             broker=old_mandate.broker,
             deal_type=old_mandate.deal_type,
-            initiated_by=old_mandate.initiated_by, # Or 'SELLER' since they clicked renew? 
-            # Let's assume the renewer is the initiator of the NEW mandate
+            initiated_by=old_mandate.initiated_by, 
             is_exclusive=old_mandate.is_exclusive,
             commission_rate=old_mandate.commission_rate,
             fixed_amount=old_mandate.fixed_amount,

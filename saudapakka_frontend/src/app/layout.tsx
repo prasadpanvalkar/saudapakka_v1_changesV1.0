@@ -20,7 +20,9 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.className} antialiased text-gray-900 bg-white`} suppressHydrationWarning>
         <AuthProvider>
-          {children}
+          <div id="app-content" className="w-full min-h-screen">
+            {children}
+          </div>
         </AuthProvider>
       </body>
     </html>

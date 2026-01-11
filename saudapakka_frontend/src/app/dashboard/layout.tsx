@@ -4,6 +4,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter, usePathname } from "next/navigation";
+import { useHasMounted } from "@/hooks/use-has-mounted";
 import {
   LayoutDashboard,
   Building2,
@@ -17,6 +18,7 @@ import {
   Gavel
 } from "lucide-react";
 import Link from "next/link";
+import NotificationBell from "@/components/layout/NotificationBell";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, logout, checkUser } = useAuth();
@@ -24,21 +26,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  /* Hydration Safety */
+  const hasMounted = useHasMounted();
   const [authReady, setAuthReady] = useState(false);
 
-  // STEP 1: Wait for mounting and rehydration
+  // STEP 1: Handle Rehydration (Persist)
   useEffect(() => {
     const init = async () => {
       await useAuth.persist.rehydrate();
-      setMounted(true);
     };
     init();
   }, []);
 
   // STEP 2: Verify Auth only after mounting
   useEffect(() => {
-    if (!mounted) return;
+    if (!hasMounted) return;
 
     const verify = async () => {
       try {
@@ -49,7 +51,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       }
     };
     verify();
-  }, [mounted, checkUser, router]);
+  }, [hasMounted, checkUser, router]);
 
   // STEP 3: Handle Final Redirects
   useEffect(() => {
@@ -58,7 +60,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [authReady, user, router]);
 
-  // Get user role badge
   const getUserRole = () => {
     if (user?.is_staff) return { label: "Administrator", color: "bg-red-600" };
     if (user?.is_active_broker) return { label: "Broker", color: "bg-blue-500" };
@@ -72,10 +73,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     router.push("/login");
   };
 
-  // HYDRATION SHIELD
-  if (!mounted || !authReady || !user) {
+  // HYDRATION SHIELD - Ensure server and client match initially
+  if (!hasMounted || !authReady || !user) {
     return (
-      <div className="min-h-screen w-full flex items-center justify-center bg-white" suppressHydrationWarning>
+      <div className="min-h-screen w-full flex items-center justify-center bg-white">
         <div className="flex flex-col items-center gap-3">
           <div className="w-8 h-8 border-4 border-gray-200 border-t-[#4A9B6D] rounded-full animate-spin" />
           <p className="text-xs text-gray-400 font-medium">Synchronizing Saudapakka...</p>
@@ -211,6 +212,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <NotificationBell />
             <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${userRole.color} text-white uppercase tracking-wide`}>
               {userRole.label}
             </span>
@@ -221,6 +223,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             >
               <Menu className="w-6 h-6" />
             </button>
+          </div>
+        </div>
+
+        {/* Desktop Header (Added for Notification Bell) */}
+        <div className="hidden lg:flex items-center justify-end p-4 sm:px-8 bg-white border-b border-gray-100 sticky top-0 z-20">
+          <div className="flex items-center gap-4">
+            <NotificationBell />
+            <div className="h-8 w-[1px] bg-gray-200"></div>
+            <div className="flex items-center gap-2">
+              <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${userRole.color} text-white uppercase tracking-wide`}>
+                {userRole.label}
+              </span>
+            </div>
           </div>
         </div>
 

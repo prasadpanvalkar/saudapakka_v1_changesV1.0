@@ -643,7 +643,7 @@ export default function PropertyDetailsPage() {
               <div className="h-24 sm:hidden"></div>
 
               {/* Mobile Sticky Footer - Action Buttons */}
-              <div className="fixed bottom-0 left-0 right-0 p-3 bg-white border-t border-gray-200 sm:hidden z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] pb-safe">
+              <div className="fixed bottom-0 left-0 right-0 p-3 bg-white border-t border-gray-200 sm:hidden z-[100] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] pb-safe">
                 <div className="grid grid-cols-2 gap-3">
                   <Button
                     onClick={handleContactOwner}
@@ -665,7 +665,7 @@ export default function PropertyDetailsPage() {
                   {/* Broker Action Mobile - Conditional */}
                   {user?.is_active_broker && !property.has_active_mandate && (
                     <div className="col-span-2 mt-2">
-                      <Link href={`/dashboard/mandates/create?propertyId=${id}`}>
+                      <Link href={`/dashboard/mandates/create?propertyId=${id}`} className="w-full block">
                         <Button className="w-full h-12 rounded-xl bg-[#4A9B6D] hover:bg-[#2D5F3F] text-white font-semibold shadow-sm flex items-center justify-center">
                           <FileText className="w-5 h-5 mr-2" />
                           Initiate Mandate

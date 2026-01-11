@@ -107,9 +107,9 @@ export default function InitiateMandatePage() {
 
             const payload = {
                 property_item: selectedProperty,
-                initiated_by: isBrokerInitiator ? InitiatedBy.BROKER : InitiatedBy.SELLER,
+                initiated_by: user?.is_active_broker ? InitiatedBy.BROKER : InitiatedBy.SELLER,
                 deal_type: dealType,
-                broker: isBrokerInitiator ? user.id : (dealType === DealType.WITH_BROKER ? selectedBroker?.id : undefined),
+                broker: user?.is_active_broker ? user.id : (dealType === DealType.WITH_BROKER ? selectedBroker?.id : undefined),
                 is_exclusive: true,
                 commission_rate: 2.0
             };

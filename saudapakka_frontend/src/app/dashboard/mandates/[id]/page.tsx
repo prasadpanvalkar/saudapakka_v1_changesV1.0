@@ -140,6 +140,25 @@ export default function MandateDetailsPage() {
         return diffDays <= 15 && expiry > today;
     })();
 
+    const isTerminatedByUser = mandate.status === 'TERMINATED_BY_USER';
+
+    const handleCancel = async () => {
+        if (!mandate) return;
+        if (!confirm("Are you sure you want to cancel this mandate? This action cannot be undone.")) return;
+
+        setActionLoading(true);
+        try {
+            await mandateService.cancelMandate(mandate.id);
+            alert("Mandate cancelled successfully.");
+            fetchMandate();
+        } catch (err) {
+            console.error("Failed to cancel", err);
+            alert("Failed to cancel mandate.");
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
     const templateContent = parseMandateTemplate({
         mandate,
         property: propertyDetails,
@@ -148,54 +167,80 @@ export default function MandateDetailsPage() {
     return (
         <div className="max-w-7xl mx-auto pb-20 relative">
             {/* Header */}
-            <div className="flex items-center gap-4 mb-6">
-                <Link
-                    href="/dashboard/mandates"
-                    className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                >
-                    <ArrowLeft className="w-5 h-5 text-gray-500" />
-                </Link>
-                <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-1">
-                        <h1 className="text-2xl font-bold text-gray-900">Mandate Agreement #{mandate.id}</h1>
-                        {isExpiringSoon && (
-                            <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-bold flex items-center gap-1">
-                                <AlertTriangle className="w-3 h-3" />
-                                Expiring Soon
-                            </span>
-                        )}
-                        {isExpired && (
-                            <span className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-xs font-bold flex items-center gap-1">
-                                <AlertTriangle className="w-3 h-3" />
-                                Expired
-                            </span>
-                        )}
-                        {isActive && (
-                            <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-bold flex items-center gap-1">
-                                <CheckCircle className="w-3 h-3" />
-                                Active
-                            </span>
-                        )}
-                        {isRejected && (
-                            <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-bold flex items-center gap-1">
-                                <XCircle className="w-3 h-3" />
-                                Rejected
-                            </span>
-                        )}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
+                <div className="flex items-start gap-4">
+                    <Link
+                        href="/dashboard/mandates"
+                        className="p-3 bg-white border border-gray-200 hover:bg-gray-50 rounded-full transition-colors shadow-sm flex-shrink-0"
+                    >
+                        <ArrowLeft className="w-5 h-5 text-gray-600" />
+                    </Link>
+                    <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-3 mb-2">
+                            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">
+                                Mandate #{mandate.id.toString().slice(0, 8)}
+                            </h1>
+                            {isExpiringSoon && (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-yellow-50 text-yellow-700 rounded-lg text-xs font-semibold border border-yellow-100">
+                                    <AlertTriangle className="w-3.5 h-3.5" />
+                                    Expiring Soon
+                                </span>
+                            )}
+                            {isExpired && (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-red-50 text-red-700 rounded-lg text-xs font-semibold border border-red-100">
+                                    <AlertTriangle className="w-3.5 h-3.5" />
+                                    Expired
+                                </span>
+                            )}
+                            {isActive && (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-50 text-green-700 rounded-lg text-xs font-semibold border border-green-100">
+                                    <CheckCircle className="w-3.5 h-3.5" />
+                                    Active
+                                </span>
+                            )}
+                            {isRejected && (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gray-100 text-gray-600 rounded-lg text-xs font-semibold border border-gray-200">
+                                    <XCircle className="w-3.5 h-3.5" />
+                                    Rejected
+                                </span>
+                            )}
+                            {isTerminatedByUser && (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-red-50 text-red-600 rounded-lg text-xs font-semibold border border-red-100">
+                                    <XCircle className="w-3.5 h-3.5" />
+                                    Cancelled
+                                </span>
+                            )}
+                        </div>
+                        <p className="text-sm text-gray-500" suppressHydrationWarning>
+                            Created on {new Date(mandate.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}
+                        </p>
                     </div>
-                    <p className="text-gray-500">Created on {new Date(mandate.created_at).toLocaleDateString()}</p>
                 </div>
 
-                {isExpired && (
-                    <button
-                        onClick={handleRenew}
-                        disabled={actionLoading}
-                        className="flex items-center gap-2 bg-primary-green text-white px-4 py-2 rounded-lg font-medium hover:bg-dark-green transition-colors"
-                    >
-                        {actionLoading ? <Loader2 className="animate-spin w-4 h-4" /> : <RefreshCw className="w-4 h-4" />}
-                        Renew Mandate
-                    </button>
-                )}
+                {/* Actions Container */}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
+                    {isExpired && (
+                        <button
+                            onClick={handleRenew}
+                            disabled={actionLoading}
+                            className="flex items-center justify-center gap-2 bg-primary-green hover:bg-dark-green text-white px-5 py-2.5 rounded-xl font-semibold transition-all shadow-sm hover:shadow"
+                        >
+                            {actionLoading ? <Loader2 className="animate-spin w-4 h-4" /> : <RefreshCw className="w-4 h-4" />}
+                            Renew Mandate
+                        </button>
+                    )}
+
+                    {(isActive || isPending) && (
+                        <button
+                            onClick={handleCancel}
+                            disabled={actionLoading}
+                            className="flex items-center justify-center gap-2 px-5 py-2.5 bg-white border border-red-200 text-red-600 hover:bg-red-50 rounded-xl font-semibold transition-colors shadow-sm"
+                        >
+                            <XCircle className="w-4 h-4" />
+                            Cancel Mandate
+                        </button>
+                    )}
+                </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -277,6 +322,15 @@ export default function MandateDetailsPage() {
                                 <Clock className="w-5 h-5 text-gray-400" />
                                 <span>Expires on <span className="font-bold text-gray-900">{new Date(mandate.expiry_date!).toLocaleDateString()}</span></span>
                             </div>
+                        </div>
+                    )}
+
+                    {isTerminatedByUser && (
+                        <div className="bg-red-50 p-6 rounded-xl border border-red-100 shadow-sm">
+                            <h3 className="font-bold text-red-900 mb-2">Mandate Cancelled</h3>
+                            <p className="text-sm text-red-700">
+                                This mandate was manually cancelled by the user.
+                            </p>
                         </div>
                     )}
                 </div>

@@ -21,6 +21,7 @@ interface AuthState {
   logout: () => void;
   refreshUser: () => Promise<void>;
   checkUser: () => Promise<void>; // Alias for layouts
+  isRefreshing?: boolean;
 }
 
 export const useAuth = create<AuthState>()(
@@ -35,19 +36,26 @@ export const useAuth = create<AuthState>()(
       },
 
       refreshUser: async () => {
+        const { isRefreshing, user: currentUser } = get();
+        if (isRefreshing) return;
+
+        set({ isRefreshing: true });
         try {
           const res = await api.get("/api/user/me/");
-          // This updates the local state AND the persisted localStorage
-          set({ user: res.data });
-          console.log("✅ Auth State Synchronized:", res.data);
+
+          // Only update if data actually changed to prevent re-renders
+          if (JSON.stringify(currentUser) !== JSON.stringify(res.data)) {
+            set({ user: res.data });
+            console.log("✅ Auth State Synchronized:", res.data);
+          }
         } catch (error: any) {
           console.error("Failed to refresh user data", error);
-          // Interceptor handles 401 and redirect if refresh fails
-          // We just need to ensure local state is cleared if that happens
           if (error.response?.status === 401) {
             set({ user: null });
           }
           throw error;
+        } finally {
+          set({ isRefreshing: false });
         }
       },
 
@@ -56,8 +64,6 @@ export const useAuth = create<AuthState>()(
         const token = Cookies.get('access_token');
         const refreshToken = Cookies.get('refresh_token');
 
-        // As long as we have a refresh token, we technically have a session
-        // The interceptor will swap it for a new access token if needed
         if (token || refreshToken) {
           await get().refreshUser();
         }

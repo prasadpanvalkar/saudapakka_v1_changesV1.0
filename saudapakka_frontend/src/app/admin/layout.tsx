@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import AdminSidebar from "@/components/admin/AdminSidebar";
+import NotificationBell from "@/components/layout/NotificationBell";
 import Cookies from "js-cookie";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -88,8 +89,28 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return (
         <div className="flex min-h-screen bg-slate-50">
             <AdminSidebar />
-            <main className="flex-1 ml-72 p-8 transition-all">
-                {children}
+            <main className="flex-1 ml-72 bg-slate-50 min-h-screen flex flex-col transition-all">
+                {/* Admin Header */}
+                <header className="bg-white border-b border-gray-200 sticky top-0 z-20 px-8 py-4 flex items-center justify-between">
+                    <h2 className="text-xl font-bold text-gray-800 tracking-tight">Admin Dashboard</h2>
+                    <div className="flex items-center gap-4">
+                        <NotificationBell />
+                        <div className="h-8 w-[1px] bg-gray-200"></div>
+                        <div className="flex items-center gap-3">
+                            <div className="text-right">
+                                <p className="text-sm font-bold text-gray-900">{user?.full_name || 'Admin'}</p>
+                                <p className="text-xs text-gray-500 uppercase tracking-wide">Superuser</p>
+                            </div>
+                            <div className="w-10 h-10 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold shadow-md">
+                                {user?.full_name?.[0] || 'A'}
+                            </div>
+                        </div>
+                    </div>
+                </header>
+
+                <div className="p-8">
+                    {children}
+                </div>
             </main>
         </div>
     );
